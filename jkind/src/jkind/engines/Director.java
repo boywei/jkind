@@ -43,10 +43,7 @@ import jkind.translation.Specification;
 import jkind.util.CounterexampleExtractor;
 import jkind.util.ModelReconstructionEvaluator;
 import jkind.util.Util;
-import jkind.writers.ConsoleWriter;
-import jkind.writers.ExcelWriter;
-import jkind.writers.Writer;
-import jkind.writers.XmlWriter;
+import jkind.writers.*;
 
 public class Director extends MessageHandler {
 	public static final String NAME = "director";
@@ -70,6 +67,8 @@ public class Director extends MessageHandler {
 	private AdviceWriter adviceWriter;
 
 	private MiniJKind miniJkind;
+
+	private StringBuilder output = new StringBuilder();
 
 	public Director(JKindSettings settings, Specification userSpec, Specification analysisSpec) {
 		this(settings, userSpec, analysisSpec, null);
@@ -105,7 +104,8 @@ public class Director extends MessageHandler {
 			} else if (settings.miniJkind) {
 				return new ConsoleWriter(new NodeLayout(userSpec.node), miniJkind);
 			} else {
-				return new ConsoleWriter(new NodeLayout(userSpec.node));
+//				return new ConsoleWriter(new NodeLayout(userSpec.node));
+				return new StringWriter(new NodeLayout(userSpec.node));
 			}
 		} catch (IOException e) {
 			throw new JKindException("Unable to open output file", e);
@@ -137,7 +137,14 @@ public class Director extends MessageHandler {
 			stopEngines();
 		}
 
+		System.out.println(output.toString());
+		System.out.println(writer.toString());
+
 		return exitCode;
+	}
+
+	public String getResult() {
+		return output.toString() + " " + writer.toString();
 	}
 
 	private boolean exitRequested() {
@@ -294,13 +301,8 @@ public class Director extends MessageHandler {
 
 	private void printHeader() {
 		if (!settings.xmlToStdout) {
-			System.out.println("==========================================");
-			System.out.println("  JKind " + Main.getVersion());
-			System.out.println("==========================================");
-			System.out.println();
-			System.out.println("There are " + remainingProperties.size() + " properties to be checked.");
-			System.out.println("PROPERTIES TO BE CHECKED: " + remainingProperties);
-			System.out.println();
+			output.append("一共有 " + remainingProperties.size() + " 条性质待检验.\n");
+			output.append("待检验的性质: " + remainingProperties + "\n");
 		}
 	}
 
@@ -496,25 +498,21 @@ public class Director extends MessageHandler {
 
 	private void printSummary() {
 		if (!settings.xmlToStdout && !settings.miniJkind) {
-			System.out.println("    -------------------------------------");
-			System.out.println("    --^^--        SUMMARY          --^^--");
-			System.out.println("    -------------------------------------");
-			System.out.println();
+			output.append("    -------------------------------------\n");
+			output.append("    --^^--          详情           --^^--\n");
+			output.append("    -------------------------------------\n");
 			if (!validProperties.isEmpty()) {
-				System.out.println("VALID PROPERTIES: " + validProperties);
-				System.out.println();
+				output.append("所有通过的性质: " + validProperties + "\n");
 			}
 			if (!invalidProperties.isEmpty()) {
-				System.out.println("INVALID PROPERTIES: " + invalidProperties);
-				System.out.println();
+				output.append("所有不通过的性质: " + invalidProperties + "\n");
 			}
 
 			List<String> unknownProperties = new ArrayList<>(analysisSpec.node.properties);
 			unknownProperties.removeAll(validProperties);
 			unknownProperties.removeAll(invalidProperties);
 			if (!unknownProperties.isEmpty()) {
-				System.out.println("UNKNOWN PROPERTIES: " + unknownProperties);
-				System.out.println();
+				output.append("所有未知的性质: " + unknownProperties + "\n");
 			}
 		}
 	}
@@ -534,4 +532,29 @@ public class Director extends MessageHandler {
 		model = ModelReconstructionEvaluator.reconstruct(userSpec, analysisSpec, model, property, k, concrete);
 		return CounterexampleExtractor.extract(userSpec, k, model);
 	}
+
+	public List<String> getRemainingProperties() {
+		return remainingProperties;
+	}
+
+	public List<String> getValidProperties() {
+		return validProperties;
+	}
+
+	public List<String> getInvalidProperties() {
+		return invalidProperties;
+	}
+
+	public int getBaseStep() {
+		return baseStep;
+	}
+
+	public Map<String, InductiveCounterexampleMessage> getInductiveCounterexamples() {
+		return inductiveCounterexamples;
+	}
+
+	public Advice getInputAdvice() {
+		return inputAdvice;
+	}
+
 }

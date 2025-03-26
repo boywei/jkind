@@ -16,3 +16,7 @@ Makefile
 jkind/.project
 jkind-api/.project
 
+.DS_Store
+.idea/*
+META-INF/*
+
